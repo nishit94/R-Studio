@@ -1,0 +1,249 @@
+---
+title: "portfolio2"
+Student number: n9915567
+output:
+  html_document: default
+  pdf_document: default
+Author: Nishit Ramoliya
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Step 1: Fetch all Uber files and store it in metadata.
+Step 2: Initialise uber_raw_data as null in dataset.
+Step 3: Merge all Uber data in one dataset i.e uber_raw_data
+Step 4: Display uber_raw_data and check all the data is stored correctly or not.
+
+```{r Task1.0}
+metadata <- list.files(path ="/Users/nishi/Documents/IFN509/Data/", full.names = T)
+uber_raw_data<-NULL
+
+
+for (i in 1:6)
+{
+  uber_raw_data<-rbind(uber_raw_data,read.csv(metadata[i]))
+}
+uber_raw_data<-subset(uber_raw_data,select = c(Date.Time, Lat, Lon))
+
+uber_raw_data<-subset(uber_raw_data,select=c(Date.Time, Lat, Lon))
+uber_raw_data<-uber_raw_data[order(as.Date(uber_raw_data$Date.Time, format="%m/%d%Y")),]
+
+uber_raw_data[]
+```
+
+## Split the data
+For perfoming Task 1.1, we split the date and time sperately in two different column.
+Store time to pickupTime and date to pickupDate from uber_raw_data with definite format.
+Count the frequency of uber pickup by each day and store it into pickupFreq.
+Arrange the pickups frequencies by ascending orders of weekdays from monday to sunday.
+Show the weekdays with maximum day pickup and minimum day pickup.
+Now install ggplot2 library from packages.
+Using ggplot2, plot the weekly uber pickup frequency data into graph.
+
+Task 1.1
+```{r Task 1.1}
+pickupTime <- format(as.POSIXct(strptime(uber_raw_data$Date.Time,"%m/%d/%Y %H:%M:%S",tz="")), format="%H")
+
+pickupDate <- format(as.POSIXct(strptime(uber_raw_data$Date.Time,"%m/%d/%Y %H:%M:%S",tz="")), format="%m/%d/%Y")
+
+uber_raw_data$Time <- pickupTime
+uber_raw_data$Date <-pickupDate
+
+uber_raw_data$Weekday <-weekdays(as.Date(uber_raw_data$Date.Time,format="%m/%d/%Y"))
+
+pickupFreq<-as.data.frame(table(uber_raw_data$Weekday))
+names(pickupFreq)<-c("Weekday","Pickups")
+
+pickupFreq$Weekday<- factor(pickupFreq$Weekday, levels=c("Monday",
+    "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
+pickupFreq<-pickupFreq[order(pickupFreq$Weekday),]
+
+
+
+pickupFreq[which.max(pickupFreq$Pickups),]
+
+
+pickupFreq[which.min(pickupFreq$Pickups),]
+
+require(ggplot2)
+
+
+ggplot(data=pickupFreq, aes(x = Weekday, y=Pickups, fill=Weekday))+geom_bar(stat = "identity")+ggtitle(label = "Weekday Pickup Comparison")+theme_minimal()+theme(plot.title = element_text(hjust = 0.5, lineheight = 0.8, face = "bold"))+xlab("Weekdays")+ylab("Number of Pickups")
+
+```
+
+
+#Task 1.2
+Split the month from date column and store it in the new column as Months.
+Now, count frequency of uber pickups monthly.
+Arrange months in ascending order from April to September.
+Plot the frequency into graph using ggplot.
+
+```{r Task 1.2}
+#require every library needed for data frame manipulation
+
+Months<-months(as.POSIXct(uber_raw_data$Date, format="%m/%d/%Y"))
+
+monthFreq<-as.data.frame(table(Months))
+monthFreq[]
+
+uber_raw_data$Month<-months(as.POSIXct(uber_raw_data$Date, format="%m/%d/%Y"))
+
+arraangeMonths<-data.frame(Months=c("April","May","June","July","August","September"))
+frequency=c(564516,652435,663844,796121,829275,1028136)
+arraangeMonths[]
+
+arraangeMonths$Months<-factor(arraangeMonths$Months,levels = c("April","May","June","July","August","September"))
+
+ggplot(data=arraangeMonths,aes(x=Months,y=frequency))+geom_line(stat="identity",color="blue",size=2.0, group="month")+ggtitle(label="Monthly uber pick-up Trend")+xlab("Months")+ylab("Frequency")+theme(plot.title=element_text(face="italic",hjust=0.5,lineheight=1.0))
+
+```
+
+#Task 1.3
+Count the frequecny of uber pickup by time (hour) per day.
+Plot the hourly reqency in graph using ggplot.
+```{r Task 1.3}
+freqT<-as.data.frame(table(pickupTime))
+freqT[]
+ggplot(data=freqT, aes(pickupTime, Freq,fill=pickupTime))+geom_bar(stat = "identity")+ggtitle(label = "Trend Over Time of the Day")+xlab("Hour")+ylab("Number of Pickups")+theme(plot.title = element_text(hjust=0.5, lineheight = 1.8, face = "bold"))
+```
+
+#Task2.0
+Install ggmap, maproj and scales library from packages
+Get New York city map and store it into new dataset
+Plot citymap showing the uberpicks using point plot.
+
+```{r Task 2.0}
+require(ggmap)
+require(mapproj)
+require(scales)
+
+map<-get_map(location = "NYC",zoom=15)
+ggmap(map)
+NYC <- ggmap(map)
+
+NYC+geom_point(data = uber_raw_data, aes(x=Lon, y=Lat, color="pick ups"),alpha =0.03)+labs(x="Longitude",y="Latitude",Title="Uber Pickups in New York")
+```
+
+#Now plot same map showing the density of uber pickup.
+
+```{r Task 2 continue}
+require(ggmap)
+require(mapproj)
+require(scales)
+
+map<-get_map(location = 'NYC',zoom=15)
+ggmap(map)
+NYC1 <- ggmap(map)
+
+NYC1+stat_density2d(aes(x=Lon,y=Lat,fill=..level..,alpha=..level..),alpha=0.03,bins=30,size=3,geom="polygon",data=uber_raw_data)+labs(x="Longitude", y="Latitude")+ theme(plot.title = element_text(face = "italic",hjust = 0.5,lineheight = 1.0))
+```
+   
+
+Create a subset of weekly uber pickups.
+Arrange the data in ascending order from Monday to Sunday.
+Plot density graph of arranged data.
+
+
+```{r Task 2.1}
+NYC_weekday_pickups <- subset(uber_raw_data, select = c(Lat, Lon, Weekday))
+
+NYC_weekday_pickups$Weekday<- factor(NYC_weekday_pickups$Weekday, levels=c("Monday",
+    "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
+
+NYC_weekday_pickups<-NYC_weekday_pickups[order(NYC_weekday_pickups$Weekday),]
+
+NYC1 + stat_density2d(aes(x = Lon, y = Lat, fill = ..level.., alpha=..level..), size = 8, bins = 30, alpha=0.5, data = NYC_weekday_pickups, geom = "polygon")+scale_fill_gradient(low="green", high = "red")+facet_wrap(~Weekday)
+```
+
+Create subset of uber pickups by month and store it.
+Order the month sequentially from April to September
+Plot density diagram of uber pickups by month.
+
+```{r Task 2.2}
+NYC_monthly_pickups <- subset(uber_raw_data, select = c(Lat, Lon, Month))
+NYC_monthly_pickups$Month<- factor(NYC_monthly_pickups$Month, levels = c("April", "May", "June", "July","August","September"))
+NYC_monthly_pickups<-NYC_monthly_pickups[order(NYC_monthly_pickups$Month),]
+
+NYC1 + stat_density2d(aes(x = Lon, y = Lat, fill = ..level.., alpha=..level..), size = 8, bins = 30, alpha=0.5, data = NYC_monthly_pickups, geom = "polygon")+scale_fill_gradient(low="green", high = "red")+facet_wrap(~Month)
+
+```
+
+
+Create subset of uber pickups by time(hours) per day and store the time.
+Plot the density diagram of hourly uber pickups in a day according to its location.
+
+```{r Task 2.3}
+time_plotting <- subset(uber_raw_data, select = c(Time, Lat, Lon))
+
+NYC1 + stat_density2d(aes(x = Lon, y = Lat, fill = ..level.., alpha=..level..), size = 8, bins = 30, alpha=0.8, data = time_plotting, geom = "polygon")+scale_fill_gradient(low="green", high = "red")+facet_wrap(~Time)
+```
+#Task 3.1
+Store mtcars data into matrix
+Apply cosine similarity using lsa library.
+
+```{r Task 3.1}
+require(lsa)
+data(mtcars)
+carData<-as.matrix(mtcars)
+cosine(t(carData))
+
+```
+
+
+
+
+```{r}
+library(tidyverse)
+
+ mtcars$item = rownames(mtcars)
+    data <- (mtcars %>% select(item, mpg, hp, qsec))[1:32,]
+
+    carDistance <- as.matrix(dist(data[1:32,-1]))
+
+# Get the ith cars label name for one car
+    mtcars_items <- function(col, carDistance, top_i) {
+      labels(carDistance)[[1]][top_i[col]]
+    }
+
+    # Get the ith cars score from one column
+    ith_score <- function(col, carDistance, top_i) {
+      carDistance[top_i[col], col]
+    }
+
+    # Create a dataframe with the ith most similar item for all items
+    ith_similar <- function(carDistance, i) {
+      orders <- apply(carDistance, 2, order)
+      top_i <- orders[i + 1, ]
+
+      top_i_score <- sapply(1:ncol(carDistance), ith_score, carDistance, top_i)
+      top_i_items <- sapply(1:ncol(carDistance), mtcars_items, carDistance, top_i)
+
+      similarities <- data.frame(placeholder1 = top_i_score,
+                                 placeholder2 = top_i_items)
+
+      colnames <- c(paste0("similar_", i, "_score"), paste0("similar_", i))
+      names(similarities) <- colnames
+
+      similarities
+    }
+
+    # For example top 1 similarities
+    n <- 1
+
+    for(i in 1:n) {
+      tmp_similarities <- ith_similar(carDistance, i)
+
+      data <- cbind(data, tmp_similarities)
+    }
+
+    data
+```
+
+
+
+
